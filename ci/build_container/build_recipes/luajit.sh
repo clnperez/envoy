@@ -2,11 +2,11 @@
 
 set -e
 
-VERSION=2.0.5
+VERSION=2.0.4
 
-wget -O LuaJIT-"$VERSION".tar.gz https://github.com/LuaJIT/LuaJIT/archive/v"$VERSION".tar.gz
-tar xf LuaJIT-"$VERSION".tar.gz
-cd LuaJIT-"$VERSION"
+wget -O LuaJIT-ppc64-port.zip https://github.com/PPC64/LuaJIT/archive/ppc64-port.zip
+unzip LuaJIT-ppc64-port.zip
+cd LuaJIT-ppc64-port
 
 # Fixup Makefile with things that cannot be set via env var.
 cat > ../luajit_make.diff << EOF
