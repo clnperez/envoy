@@ -48,5 +48,4 @@ index f7f81a4..e80c7ff 100644
 EOF
 patch -p1 < ../luajit_make.diff
 
-
-DEFAULT_CC=${CC} TARGET_CFLAGS=${CFLAGS} TARGET_LDFLAGS=${CFLAGS} CFLAGS="" make V=1 PREFIX="$THIRDPARTY_BUILD" install
+make PREFIX="$THIRDPARTY_BUILD" install
