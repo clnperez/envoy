@@ -79,7 +79,7 @@ REPOSITORY_LOCATIONS = dict(
         remote = "https://github.com/grpc-ecosystem/grpc-httpjson-transcoding",
     ),
     io_bazel_rules_go = dict(
-        commit = "4374be38e9a75ff5957c3922adb155d32086fe14",
+        commit = "74849e006b4f4392e95a12188cd0352b01730c3a",
         remote = "https://github.com/bazelbuild/rules_go",
     ),
     # I'd love to name this `com_github_google_subpar`, but something in the Subpar
