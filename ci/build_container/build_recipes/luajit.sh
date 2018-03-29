@@ -2,11 +2,11 @@
 
 set -e
 
-VERSION=2.0.5
+VERSION=2.0.4
 
-wget -O LuaJIT-"$VERSION".tar.gz https://github.com/LuaJIT/LuaJIT/archive/v"$VERSION".tar.gz
-tar xf LuaJIT-"$VERSION".tar.gz
-cd LuaJIT-"$VERSION"
+wget -O LuaJIT-ppc64-port.zip https://github.com/PPC64/LuaJIT/archive/ppc64-port.zip
+unzip LuaJIT-ppc64-port.zip
+cd LuaJIT-ppc64-port
 
 # Fixup Makefile with things that cannot be set via env var.
 cat > ../luajit_make.diff << 'EOF'
@@ -46,13 +46,13 @@ index f7f81a4..e698517 100644
  # Disable the JIT compiler, i.e. turn LuaJIT into a pure interpreter.
  #XCFLAGS+= -DLUAJIT_DISABLE_JIT
 @@ -564,7 +564,7 @@ endif
- 
+
  Q= @
  E= @echo
 -#Q=
 +Q=
  #E= @:
- 
+
  ##############################################################################
 EOF
 patch -p1 < ../luajit_make.diff
