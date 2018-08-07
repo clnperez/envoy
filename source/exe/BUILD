@@ -10,6 +10,7 @@ load(
     "//source/extensions:all_extensions.bzl",
     "envoy_all_extensions",
     "envoy_windows_extensions",
+    "envoy_ppc_extensions",
 )
 
 envoy_package()
@@ -40,6 +41,7 @@ envoy_cc_library(
         "//source/server:test_hooks_lib",
     ] + select({
         "//bazel:windows_x86_64": envoy_windows_extensions(),
+        "//bazel:linux_ppc": envoy_ppc_extensions(),
         "//conditions:default": envoy_all_extensions(),
     }),
 )

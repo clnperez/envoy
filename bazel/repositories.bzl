@@ -230,8 +230,8 @@ def _envoy_api_deps():
         actual = "@six_archive//:six",
     )
 
-def envoy_dependencies(path = "@envoy_deps//", skip_targets = []):
-    envoy_repository = repository_rule(
+envoy_repository = repository_rule(
+        # this this is a repository rule, do i have access to the bazel config?
         implementation = _build_recipe_repository_impl,
         environ = [
             "CC",
@@ -244,11 +244,13 @@ def envoy_dependencies(path = "@envoy_deps//", skip_targets = []):
         local = True,
         attrs = {
             "recipes": attr.string_list(),
+            # hack to let me skip a target based on cpu
+            "platform_target": attr.string(),
         },
     )
 
-    # Ideally, we wouldn't have a single repository target for all dependencies, but instead one per
-    # dependency, as suggested in #747. However, it's much faster to build all deps under a single
+def envoy_dependencies(path = "@envoy_deps//", skip_targets = []):
+
     # recursive make job and single make jobserver.
     recipes = depset()
     for t in TARGET_RECIPES:
@@ -257,7 +259,15 @@ def envoy_dependencies(path = "@envoy_deps//", skip_targets = []):
 
     envoy_repository(
         name = "envoy_deps",
+        # i need to find a way to modify this recipes list. this is the creation of the repository
+        # rule defined above, so, can i add a skip targets there, and then in the impl chose not to build it?
+        # iow -- can we pass the skip targets checking off to that completely?
+        # no, this macro is called in a WORKSPACE file, so we can't use select() apparently
         recipes = recipes.to_list(),
+        platform_target = select({
+                                "//bazel:linux_ppc": "ppc",
+                                "//conditions:default": "x86",
+                                 }),
     )
     for t in TARGET_RECIPES:
         if t not in skip_targets:
