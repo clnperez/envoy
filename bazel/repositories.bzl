@@ -87,6 +87,9 @@ def _build_recipe_repository_impl(ctxt):
         )
     ctxt.symlink(Label("//ci/prebuilt:BUILD"), "BUILD")
 
+    #print("osname osname osname osname  ============ " + ctxt.os.name)
+    #print(ctxt.os.environ)
+
     # Run the build script.
     command = []
     env = {}
@@ -100,6 +103,11 @@ def _build_recipe_repository_impl(ctxt):
         env["CXXFLAGS"] = "-DNDEBUG"
         env["CFLAGS"] = "-DNDEBUG"
         command = ["./repositories.bat"] + ctxt.attr.recipes
+    #elif ctxt.cpu.name.startswith("ppc"):
+    #    print("remove the luajit recipe here somehow")
+    #    command = ["./repositories.sh"] + ctxt.attr.recipes 
+    # not possible. there's no info about the target cpu in the repository_ctx object :(
+    # https://docs.bazel.build/versions/master/skylark/lib/repository_ctx.html#name
     else:
         command = ["./repositories.sh"] + ctxt.attr.recipes
 
@@ -231,7 +239,6 @@ def _envoy_api_deps():
     )
 
 envoy_repository = repository_rule(
-        # this this is a repository rule, do i have access to the bazel config?
         implementation = _build_recipe_repository_impl,
         environ = [
             "CC",
@@ -244,8 +251,6 @@ envoy_repository = repository_rule(
         local = True,
         attrs = {
             "recipes": attr.string_list(),
-            # hack to let me skip a target based on cpu
-            "platform_target": attr.string(),
         },
     )
 
@@ -264,10 +269,6 @@ def envoy_dependencies(path = "@envoy_deps//", skip_targets = []):
         # iow -- can we pass the skip targets checking off to that completely?
         # no, this macro is called in a WORKSPACE file, so we can't use select() apparently
         recipes = recipes.to_list(),
-        platform_target = select({
-                                "//bazel:linux_ppc": "ppc",
-                                "//conditions:default": "x86",
-                                 }),
     )
     for t in TARGET_RECIPES:
         if t not in skip_targets:

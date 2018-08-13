@@ -1,6 +1,8 @@
 # These should reflect //ci/prebuilt/BUILD declared targets. This a map from
 # target in //ci/prebuilt/BUILD to the underlying build recipe in
 # ci/build_container/build_recipes.
+
+# can i make a power list, and call it conditionally?
 TARGET_RECIPES = {
     "ares": "cares",
     "benchmark": "benchmark",
