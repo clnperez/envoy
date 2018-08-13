@@ -238,7 +238,8 @@ def _envoy_api_deps():
         actual = "@six_archive//:six",
     )
 
-envoy_repository = repository_rule(
+def envoy_dependencies(path = "@envoy_deps//", skip_targets = []):
+    envoy_repository = repository_rule(
         implementation = _build_recipe_repository_impl,
         environ = [
             "CC",
@@ -254,14 +255,14 @@ envoy_repository = repository_rule(
         },
     )
 
-def envoy_dependencies(path = "@envoy_deps//", skip_targets = []):
-
+    # Ideally, we wouldn't have a single repository target for all dependencies, but instead one per
+    # dependency, as suggested in #747. However, it's much faster to build all deps under a single
     # recursive make job and single make jobserver.
     recipes = depset()
     for t in TARGET_RECIPES:
         if t not in skip_targets:
             recipes += depset([TARGET_RECIPES[t]])
-
+ 
     envoy_repository(
         name = "envoy_deps",
         # i need to find a way to modify this recipes list. this is the creation of the repository

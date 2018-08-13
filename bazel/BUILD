@@ -42,7 +42,7 @@ config_setting(
 
 config_setting(
     name = "linux_ppc",
-    values = {"cpu": "ppc_linux"},
+    values = {"cpu": "ppc"},
 )
 
 config_setting(
