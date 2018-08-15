@@ -1,3 +1,4 @@
+/alt_arches/ppc64le/bazel-*
 /build
 /build_*
 /docs/landing_source/.bundle

@@ -9,10 +9,14 @@ exports_files([
 
 genrule(
     name = "gnu_build_id",
+    ## is there a way to conditionally set this location? and conditionall read it??
+    #srcs = ["alt_arches/ppc64le/bazel-out/volatile-status.txt"],
     outs = ["gnu_build_id.ldscript"],
+    # echo --build-id=0x1111111111 > $@  that works, so it's writing it to the right place
+    # but it doesn't look in this subproject's bazel-out. the file's there and correct.
     cmd = """
       echo --build-id=0x$$(
-          grep BUILD_SCM_REVISION bazel-out/volatile-status.txt \\
+        grep BUILD_SCM_REVISION @envoy_alt_ppc64le//bazel-out:volatile-status.txt \\
         | sed 's/^BUILD_SCM_REVISION //') \\
         > $@
     """,

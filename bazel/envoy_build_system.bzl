@@ -84,6 +84,7 @@ def _envoy_stamped_linkopts():
         # Coverage builds in CI are failing to link when setting a build ID.
         #
         # /usr/bin/ld.gold: internal error in write_build_id, at ../../gold/layout.cc:5419
+        # added https://github.com/envoyproxy/envoy/commit/b3bc488f6730c576867bf094faa500bfc3376aec
         "@envoy//bazel:coverage_build": [],
         "@envoy//bazel:windows_x86_64": [],
 
