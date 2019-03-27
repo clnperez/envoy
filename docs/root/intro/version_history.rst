@@ -40,6 +40,13 @@ Version history
 * upstream: add hash_function to specify the hash function for :ref:`ring hash<envoy_api_msg_Cluster.RingHashLbConfig>` as either xxHash or `murmurHash2 <https://sites.google.com/site/murmurhash>`_. MurmurHash2 is compatible with std::hash in GNU libstdc++ 3.4.20 or above. This is typically the case when compiled on Linux and not macOS.
 * upstream: added :ref:`degraded health value<arch_overview_load_balancing_degraded>` which allows
   routing to certain hosts only when there are insufficient healthy hosts available.
+1.9.1 (Apr 5, 2019)
+===================
+* http: fixed CVE-2019-9900 by rejecting HTTP/1.x headers with embedded NUL characters.
+* http: fixed CVE-2019-9901 by normalizing HTTP paths prior to routing or L7 data plane processing.
+  This defaults off and is configurable via either HTTP connection manager :ref:`normalize_path
+  <envoy_api_field_config.filter.network.http_connection_manager.v2.HttpConnectionManager.normalize_path>`
+  or the :ref:`runtime <config_http_conn_man_runtime_normalize_path>`.
 
 1.9.0 (Dec 20, 2018)
 ====================
