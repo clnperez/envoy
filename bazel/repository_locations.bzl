@@ -125,8 +125,8 @@ REPOSITORY_LOCATIONS = dict(
         remote = "https://github.com/grpc-ecosystem/grpc-httpjson-transcoding",
     ),
     io_bazel_rules_go = dict(
-        commit = "0.11.1",
-        remote = "https://github.com/bazelbuild/rules_go",
+        commit = "0.11.1-ppc64le",
+        remote = "https://github.com/clnperez/rules_go",
     ),
     six_archive = dict(
         sha256 = "105f8d68616f8248e24bf0e9372ef04d3cc10104f1980f54d57b2ce73a5ad56a",
