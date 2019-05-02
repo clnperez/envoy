@@ -61,15 +61,10 @@ public:
   nghttp2_session* session() { return session_; }
   using ClientConnectionImpl::getStream;
 
-constexpr Http2SettingsTuple
-    DefaultHttp2SettingsTuple(Http2Settings::DEFAULT_HPACK_TABLE_SIZE,
-                              Http2Settings::DEFAULT_MAX_CONCURRENT_STREAMS,
-                              Http2Settings::DEFAULT_MAX_CONCURRENT_STREAMS,
-                              Http2Settings::DEFAULT_INITIAL_CONNECTION_WINDOW_SIZE);
 
 };
 
-class Http2CodecImplTestFixture {
+class Http2CodecImplTest : public testing::TestWithParam<Http2SettingsTestParam> {
 public:
   struct ConnectionWrapper {
     void dispatch(const Buffer::Instance& data, ConnectionImpl& connection) {
@@ -93,12 +88,8 @@ public:
         server_http2settings_(Http2SettingsFromTuple(::testing::get<1>(GetParam()))),
         server_(server_connection_, server_callbacks_, stats_store_, server_http2settings_) {}
 
-  Http2CodecImplTestFixture(Http2SettingsTuple client_settings, Http2SettingsTuple server_settings)
-      : client_settings_(client_settings), server_settings_(server_settings) {}
-  virtual ~Http2CodecImplTestFixture() {}
-
-  virtual void initialize() {
-    request_encoder_ = &client_->newStream(response_decoder_);
+  void initialize() {
+    request_encoder_ = &client_.newStream(response_decoder_);
     setupDefaultConnectionMocks();
 
     EXPECT_CALL(server_callbacks_, newStream(_))
@@ -112,13 +103,7 @@ public:
   void setupDefaultConnectionMocks() {
     ON_CALL(client_connection_, write(_, _))
         .WillByDefault(Invoke([&](Buffer::Instance& data, bool) -> void {
-          if (corrupt_metadata_frame_) {
-            corruptMetadataFramePayload(data);
-          }
-          if (corrupt_at_offset_ >= 0) {
-            corruptAtOffset(data, corrupt_at_offset_, corrupt_with_char_);
-          }
-          server_wrapper_.dispatch(data, *server_);
+          server_wrapper_.dispatch(data, server_);
         }));
     ON_CALL(server_connection_, write(_, _))
         .WillByDefault(Invoke([&](Buffer::Instance& data, bool) -> void {
@@ -126,36 +111,6 @@ public:
         }));
   }
 
-  void Http2SettingsFromTuple(Http2Settings& setting, const Http2SettingsTuple& tp) {
-    setting.hpack_table_size_ = ::testing::get<0>(tp);
-    setting.max_concurrent_streams_ = ::testing::get<1>(tp);
-    setting.initial_stream_window_size_ = ::testing::get<2>(tp);
-    setting.initial_connection_window_size_ = ::testing::get<3>(tp);
-    setting.allow_metadata_ = allow_metadata_;
-  }
-
-  // corruptMetadataFramePayload assumes data contains at least 10 bytes of the beginning of a
-  // frame.
-  void corruptMetadataFramePayload(Buffer::Instance& data) {
-    const size_t length = data.length();
-    const size_t corrupt_start = 10;
-    if (length < corrupt_start || length > METADATA_MAX_PAYLOAD_SIZE) {
-      ENVOY_LOG_MISC(error, "data size too big or too small");
-      return;
-    }
-    corruptAtOffset(data, corrupt_start, 0xff);
-  }
-
-  void corruptAtOffset(Buffer::Instance& data, size_t index, char new_value) {
-    if (data.length() == 0) {
-      return;
-    }
-    reinterpret_cast<uint8_t*>(data.linearize(data.length()))[index % data.length()] = new_value;
-  }
-
-  const Http2SettingsTuple client_settings_;
-  const Http2SettingsTuple server_settings_;
-  bool allow_metadata_ = false;
   Stats::IsolatedStoreImpl stats_store_;
   const Http2Settings client_http2settings_;
   NiceMock<Network::MockConnection> client_connection_;
@@ -172,18 +127,6 @@ public:
   MockStreamDecoder request_decoder_;
   StreamEncoder* response_encoder_{};
   MockStreamCallbacks server_stream_callbacks_;
-  // Corrupt a metadata frame payload.
-  bool corrupt_metadata_frame_ = false;
-  // Corrupt frame at a given offset (if positive).
-  ssize_t corrupt_at_offset_{-1};
-  char corrupt_with_char_{'\0'};
-};
-
-class Http2CodecImplTest : public ::testing::TestWithParam<Http2SettingsTestParam>,
-                           protected Http2CodecImplTestFixture {
-public:
-  Http2CodecImplTest()
-      : Http2CodecImplTestFixture(::testing::get<0>(GetParam()), ::testing::get<1>(GetParam())) {}
 };
 
 TEST_P(Http2CodecImplTest, ShutdownNotice) {
@@ -870,49 +813,6 @@ TEST_P(Http2CodecImplTest, TestCodecHeaderCompression) {
   }
 }
 
-// Validate that nghttp2 rejects NUL/CR/LF as per
-// https://httpwg.org/specs/rfc7540.html#rfc.section.10.3.
-// TEST_P(Http2CodecImplTest, InvalidHeaderChars) {
-// TODO(htuch): Write me. Http2CodecImplMutationTest basically covers this,
-// but we could be a bit more specific and add a captured H2 HEADERS frame
-// here and inject it with mutation of just the header value, ensuring we get
-// the expected codec exception.
-// }
-
-class Http2CodecImplMutationTest : public ::testing::TestWithParam<::testing::tuple<char, int>>,
-                                   protected Http2CodecImplTestFixture {
-public:
-  Http2CodecImplMutationTest()
-      : Http2CodecImplTestFixture(DefaultHttp2SettingsTuple, DefaultHttp2SettingsTuple) {}
-
-  void initialize() override {
-    corrupt_with_char_ = ::testing::get<0>(GetParam());
-    corrupt_at_offset_ = ::testing::get<1>(GetParam());
-    Http2CodecImplTestFixture::initialize();
-  }
-};
-
-INSTANTIATE_TEST_CASE_P(Http2CodecImplMutationTest, Http2CodecImplMutationTest,
-                        ::testing::Combine(::testing::ValuesIn({'\0', '\r', '\n'}),
-                                           ::testing::Range(0, 128)));
-
-// Mutate an arbitrary offset in the HEADERS frame with NUL/CR/LF. This should
-// either throw an exception or continue, but we shouldn't crash due to
-// validHeaderString() ASSERTs.
-TEST_P(Http2CodecImplMutationTest, HandleInvalidChars) {
-  initialize();
-
-  TestHeaderMapImpl request_headers;
-  request_headers.addCopy("foo", "barbaz");
-  HttpTestUtility::addDefaultHeaders(request_headers);
-  EXPECT_CALL(request_decoder_, decodeHeaders_(_, _)).Times(AnyNumber());
-  EXPECT_CALL(client_callbacks_, onGoAway()).Times(AnyNumber());
-  try {
-    request_encoder_->encodeHeaders(request_headers, true);
-  } catch (const CodecProtocolException& e) {
-    ENVOY_LOG_MISC(trace, "CodecProtocolException: {}", e.what());
-  }
-}
 
 } // namespace Http2
 } // namespace Http
