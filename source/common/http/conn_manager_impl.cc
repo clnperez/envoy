@@ -28,7 +28,6 @@
 #include "common/http/headers.h"
 #include "common/http/http1/codec_impl.h"
 #include "common/http/http2/codec_impl.h"
-#include "common/http/path_utility.h"
 #include "common/http/utility.h"
 #include "common/network/utility.h"
 
@@ -564,14 +563,6 @@ void ConnectionManagerImpl::ActiveStream::decodeHeaders(HeaderMapPtr&& headers, 
   if (!request_headers_->Path() || request_headers_->Path()->value().c_str()[0] != '/') {
     connection_manager_.stats_.named_.downstream_rq_non_relative_path_.inc();
     sendLocalReply(Grpc::Common::hasGrpcContentType(*request_headers_), Code::NotFound, "",
-                   nullptr);
-    return;
-  }
-
-  // Path sanitization should happen before any path access other than the above sanity check.
-  if (!ConnectionManagerUtility::maybeNormalizePath(*request_headers_,
-                                                    connection_manager_.config_)) {
-    sendLocalReply(Grpc::Common::hasGrpcContentType(*request_headers_), Code::BadRequest, "",
                    nullptr);
     return;
   }
